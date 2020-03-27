@@ -12,20 +12,35 @@ class CPU:
         self.reg = [0] * 8
         self.reg[7] = 0xF4  # set the last reg to the sp
         self.pc = 0
-        self.flag = 0b00000000
+        self.fl = 0
 
     # op codes and handler
         self.handler = {
             0b10100000: self.handle_ADD,
+            0b10101000: self.handle_AND,
             0b01010000: self.handle_CALL,
             0b10100111: self.handle_CMP,
             0b00000001: self.handle_HLT,
+            0b01010101: self.handle_JEQ,
+            0b01011010: self.handle_JGE,
+            0b01010111: self.handle_JGT,
+            0b01011001: self.handle_JLE,
+            0b01011000: self.handle_JLT,
+            0b01010100: self.handle_JMP,
+            0b01010110: self.handle_JNE,
             0b10000010: self.handle_LDI,
+            0b10100100: self.handle_MOD,
             0b10100010: self.handle_MUL,
+            0b01101001: self.handle_NOT,
+            0b10101010: self.handle_OR,
             0b01000110: self.handle_POP,
             0b01000111: self.handle_PRN,
             0b01000101: self.handle_PUSH,
-            0b00010001: self.handle_RET
+            0b00010001: self.handle_RET,
+            0b10101100: self.handle_SHL,
+            0b10101101: self.handle_SHR,
+            0b10101011: self.handle_XOR,
+
         }
 
     def load(self, file):
@@ -54,6 +69,11 @@ class CPU:
     def handle_ADD(self, reg_a, reg_b):
          self.reg[reg_a] += self.reg[reg_b]
          self.pc += 3
+
+    def handle_AND(self, reg_a, reg_b):
+        self.reg[reg_a] = self.reg[reg_a] & self.reg[reg_b]
+        self.pc += 3
+
     
     def handle_CALL(self, reg_a, reg_b):
        self.reg[7] -= 1
@@ -61,27 +81,84 @@ class CPU:
        self.pc = self.reg[reg_a]
 
     def handle_CMP(self, reg_a, reg_b):
+        self.fl = 0b00000000
+        if self.reg[reg_a] == self.reg[reg_b]:
+            self.fl = 0b00000001
+        if self.reg[reg_a] < self.reg[reg_b]:
+            self.fl = 0b00000100
         if self.reg[reg_a] > self.reg[reg_b]:
-            self.flag = 0b00000010
-        elif self.reg[reg_a] == self.reg[reg_b]:
-            self.flag = 0b00000001
-        elif self.reg[reg_a] < self.reg[reg_b]:
-            self.flag = 0b00000100
-        else:
-            self.flag = 0b00000000
-
-
+            self.fl = 0b00000010
+        self.pc += 3
+        
+        
     def handle_HLT(self, reg_a, reg_b):
         self.pc += 1
         self.running = False
 
+    def handle_JEQ(self, reg_a, reg_b):
+        if self.fl == 0b00000001:
+            self.pc = self.reg[reg_a]
+        else:
+            self.pc += 2
+        
+
+    def handle_JGE(self, reg_a, reg_b):
+        if self.fl == 0b00000001 or self.fl == 0b00000010:
+            self.pc = self.reg[reg_a]
+        else:
+            self.pc += 2
+        
+
+    def handle_JGT(self, reg_a, reg_b):
+        if self.fl == 0b00000010:
+            self.pc = self.reg[reg_a]
+        else:
+            self.pc += 2
+        
+    
+    def handle_JLE(self, reg_a, reg_b):
+        if self.fl == 0b00000100 or self.fl == 0b00000001:
+            self.pc = self.reg[reg_a]
+        else:
+            self.pc += 2
+        
+    def handle_JLT(self, reg_a, reg_b):
+        if self.fl == 0b00000100:
+            self.pc = self.reg[reg_a]
+        else:
+            self.pc += 2
+        
+
+    def handle_JMP(self, reg_a, reg_b):
+        self.pc = self.reg[reg_a]
+
+    def handle_JNE(self, reg_a, reg_b):
+        if self.fl != 0b0000001:
+            self.pc = self.reg[reg_a]
+        else:
+            self.pc += 2
+        
     def handle_LDI(self, reg_a, reg_b):
         self.reg[reg_a] = reg_b
         self.pc += 3
 
+    def handle_MOD(self, reg_a, reg_b):
+        if self.reg[reg_b] == 0:
+            return
+        self.reg[reg_a] = (self.reg[reg_a] % self.reg[reg_b])
+        self.pc += 3  
+    
     def handle_MUL(self, reg_a, reg_b):
         self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b])
         self.pc += 3
+
+    def handle_NOT(self, reg_a, reg_b):
+        self.reg[reg_a] = ~self.reg[reg_a]
+        self.pc += 2
+
+    def handle_OR(self, reg_a, reg_b):
+        self.reg[reg_a] = (self.reg[reg_a] | self.reg[reg_b])
+        self.pc += 3   
 
     def handle_POP(self, reg_a, reg_b):
         self.reg[reg_a] = self.ram_read(self.reg[7])
@@ -101,7 +178,18 @@ class CPU:
     def handle_RET(self, reg_a, reg_b):
         self.pc = self.ram_read(self.reg[7])
         self.reg[7] += 1
-        
+
+    def handle_SHL(self, reg_a, reg_b):
+        self.reg[reg_a] << self.reg[reg_b]
+        self.pc += 3   
+
+    def handle_SHR(self, reg_a, reg_b):
+        self.reg[reg_a] >> self.reg[reg_b]
+        self.pc += 3   
+
+    def handle_XOR(self, reg_a, reg_b):
+        self.reg[reg_a] = self.reg[reg_a] ^ self.reg[reg_b]
+        self.pc += 3   
 
     def ram_read(self, address):
         return self.ram[address]
