@@ -12,11 +12,13 @@ class CPU:
         self.reg = [0] * 8
         self.reg[7] = 0xF4  # set the last reg to the sp
         self.pc = 0
+        self.flag = 0b00000000
 
     # op codes and handler
         self.handler = {
             0b10100000: self.handle_ADD,
             0b01010000: self.handle_CALL,
+            0b10100111: self.handle_CMP,
             0b00000001: self.handle_HLT,
             0b10000010: self.handle_LDI,
             0b10100010: self.handle_MUL,
@@ -57,6 +59,17 @@ class CPU:
        self.reg[7] -= 1
        self.ram_write(self.pc + 2, self.reg[7])
        self.pc = self.reg[reg_a]
+
+    def handle_CMP(self, reg_a, reg_b):
+        if self.reg[reg_a] > self.reg[reg_b]:
+            self.flag = 0b00000010
+        elif self.reg[reg_a] == self.reg[reg_b]:
+            self.flag = 0b00000001
+        elif self.reg[reg_a] < self.reg[reg_b]:
+            self.flag = 0b00000100
+        else:
+            self.flag = 0b00000000
+
 
     def handle_HLT(self, reg_a, reg_b):
         self.pc += 1
